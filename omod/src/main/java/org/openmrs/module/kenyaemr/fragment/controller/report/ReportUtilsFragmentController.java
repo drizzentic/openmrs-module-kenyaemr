@@ -101,7 +101,8 @@ public class ReportUtilsFragmentController {
 
 
 		Mapped<ReportDefinition> mappedDefinition = new Mapped<ReportDefinition>(definition, parameterValues);
-
+		log.info("Mapped Definition Report Params: "+mappedDefinition);
+		log.info("Mapped Parameters Report Params: "+parameterValues);
 		ReportRenderer renderer = new DefaultWebRenderer();
 		RenderingMode mode = renderer.getRenderingModes(definition).iterator().next();
 
@@ -149,10 +150,24 @@ public class ReportUtilsFragmentController {
 	public SimpleObject[] getFinishedRequests(@RequestParam(value = "reportUuid", required = false) String reportUuid,
 									  UiUtils ui,
 									  @SpringBean ReportService reportService) {
+		log.info("Requesting Report: "+reportUuid);
+		try {
+			List<ReportRequest> requests = fetchRequests(reportUuid, true, reportService);
+			return removeLocation(ui, requests);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new SimpleObject[]{};
+		}
 
-		List<ReportRequest> requests = fetchRequests(reportUuid, true, reportService);
+	}
 
-		return ui.simplifyCollection(requests);
+	private SimpleObject[] removeLocation(UiUtils ui, List<ReportRequest> requests) {
+		SimpleObject[] finished = ui.simplifyCollection(requests);
+		for(SimpleObject simpleObject: finished) {
+			Map pms = (HashMap)simpleObject.get("parameters");
+			pms.remove("location");
+		}
+		return finished;
 	}
 
 	/**
@@ -168,16 +183,19 @@ public class ReportUtilsFragmentController {
 
 		List<ReportRequest> requests = fetchRequests(reportUuid, false, reportService);
 
+		SimpleObject[] finished;
 		// Filter out finished requests
 		CollectionUtils.filter(requests, new Predicate() {
 			@Override
 			public boolean evaluate(Object obj) {
 				ReportRequest request = (ReportRequest) obj;
+
 				return !(ReportRequest.Status.COMPLETED.equals(request.getStatus()) || ReportRequest.Status.FAILED.equals(request.getStatus()));
 			}
 		});
+		 finished = removeLocation(ui, requests);
 
-		return ui.simplifyCollection(requests);
+		return finished;//ui.simplifyCollection(requests);
 	}
 
 	/**
@@ -191,23 +209,31 @@ public class ReportUtilsFragmentController {
 		ReportDefinition definition = null;
 
 		// Hack to avoid loading (and thus de-serialising) the entire report
-		if (StringUtils.isNotEmpty(reportUuid)) {
-			definition = new ReportDefinition();
-			definition.setUuid(reportUuid);
+		try {
+			if (StringUtils.isNotEmpty(reportUuid)) {
+				definition = new ReportDefinition();
+				definition.setUuid(reportUuid);
+			}
+
+			List<ReportRequest> requests = (finishedOnly)
+					? reportService.getReportRequests(definition, null, null, ReportRequest.Status.COMPLETED, ReportRequest.Status.FAILED)
+					: reportService.getReportRequests(definition, null, null);
+
+			// Sort by requested date desc (more sane than the default sorting)
+			Collections.sort(requests, new Comparator<ReportRequest>() {
+				@Override
+				public int compare(ReportRequest request1, ReportRequest request2) {
+					return OpenmrsUtil.compareWithNullAsEarliest(request2.getRequestDate(), request1.getRequestDate());
+				}
+			});
+
+			return requests;
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error("Logging HTS",e);
+			return new ArrayList<ReportRequest>();
 		}
 
-		List<ReportRequest> requests = (finishedOnly)
-				? reportService.getReportRequests(definition, null, null, ReportRequest.Status.COMPLETED, ReportRequest.Status.FAILED)
-				: reportService.getReportRequests(definition, null, null);
-
-		// Sort by requested date desc (more sane than the default sorting)
-		Collections.sort(requests, new Comparator<ReportRequest>() {
-			@Override
-			public int compare(ReportRequest request1, ReportRequest request2) {
-				return OpenmrsUtil.compareWithNullAsEarliest(request2.getRequestDate(), request1.getRequestDate());
-			}
-		});
-
-		return requests;
 	}
+
 }

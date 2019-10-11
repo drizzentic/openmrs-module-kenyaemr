@@ -11,6 +11,7 @@ package org.openmrs.module.kenyaemr.reporting.cohort.definition.evaluator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.openmrs.Location;
 import org.openmrs.annotation.Handler;
 import org.openmrs.module.kenyaemr.reporting.cohort.definition.HTSConfirmationRegisterCohortDefinition;
 import org.openmrs.module.reporting.common.ObjectUtil;
@@ -42,15 +43,18 @@ public class HTSConfirmationRegisterCohortDefinitionEvaluator implements Encount
 		EncounterQueryResult queryResult = new EncounterQueryResult(definition, context);
 
 
-		String qry = "SELECT encounter_id from kenyaemr_etl.etl_hts_test t inner join person p on p.person_id=t.patient_id and p.voided=0 where t.test_type = 2 and t.voided = 0 and date(t.visit_date) BETWEEN date(:startDate) AND date(:endDate) ; ";
+		String qry = "SELECT encounter_id from kenyaemr_etl.etl_hts_test t inner join person p on p.person_id=t.patient_id and p.voided=0 where t.test_type = 2 and t.voided = 0 and date(t.visit_date) BETWEEN date(:startDate) AND date(:endDate) ";
 
 		SqlQueryBuilder builder = new SqlQueryBuilder();
-		builder.append(qry);
 		Date startDate = (Date)context.getParameterValue("startDate");
 		Date endDate = (Date)context.getParameterValue("endDate");
+		Location reportLocation = (Location) context.getParameterValue("location");
 		builder.addParameter("endDate", endDate);
 		builder.addParameter("startDate", startDate);
-
+		builder.addParameter("location", reportLocation);
+		if(reportLocation != null)
+			qry+=" AND t.encounter_location =:location";
+		builder.append(qry);
 		List<Integer> results = evaluationService.evaluateToList(builder, Integer.class, context);
 		queryResult.getMemberIds().addAll(results);
 		return queryResult;

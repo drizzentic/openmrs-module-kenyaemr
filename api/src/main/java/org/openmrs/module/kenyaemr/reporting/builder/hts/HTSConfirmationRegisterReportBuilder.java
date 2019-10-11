@@ -9,6 +9,7 @@
  */
 package org.openmrs.module.kenyaemr.reporting.builder.hts;
 
+import org.openmrs.Location;
 import org.openmrs.PatientIdentifierType;
 import org.openmrs.PersonAttributeType;
 import org.openmrs.module.kenyacore.report.ReportDescriptor;
@@ -75,14 +76,15 @@ public class HTSConfirmationRegisterReportBuilder extends AbstractReportBuilder 
         return Arrays.asList(
                 new Parameter("startDate", "Start Date", Date.class),
                 new Parameter("endDate", "End Date", Date.class),
-                new Parameter("dateBasedReporting", "", String.class)
+                new Parameter("location", "Location", Location.class)
+                //new Parameter("dateBasedReporting", "", String.class)
         );
     }
 
     @Override
     protected List<Mapped<DataSetDefinition>> buildDataSets(ReportDescriptor reportDescriptor, ReportDefinition reportDefinition) {
         return Arrays.asList(
-                ReportUtils.map(datasetColumns(), "startDate=${startDate},endDate=${endDate}")
+                ReportUtils.map(datasetColumns(), "startDate=${startDate},endDate=${endDate},location=${location}")
         );
     }
 
@@ -93,8 +95,9 @@ public class HTSConfirmationRegisterReportBuilder extends AbstractReportBuilder 
         dsd.addSortCriteria("Visit Date", SortCriteria.SortDirection.ASC);
         dsd.addParameter(new Parameter("startDate", "Start Date", Date.class));
         dsd.addParameter(new Parameter("endDate", "End Date", Date.class));
+        dsd.addParameter(new Parameter("location", "Location", Location.class));
 
-        String paramMapping = "startDate=${startDate},endDate=${endDate}";
+        String paramMapping = "startDate=${startDate},endDate=${endDate},location=${location}";
 
         DataConverter nameFormatter = new ObjectFormatter("{familyName}, {givenName} {middleName}");
         DataDefinition nameDef = new ConvertedPersonDataDefinition("name", new PreferredNameDataDefinition(), nameFormatter);
@@ -133,6 +136,7 @@ public class HTSConfirmationRegisterReportBuilder extends AbstractReportBuilder 
         HTSConfirmationRegisterCohortDefinition cd = new HTSConfirmationRegisterCohortDefinition();
         cd.addParameter(new Parameter("startDate", "Start Date", Date.class));
         cd.addParameter(new Parameter("endDate", "End Date", Date.class));
+        cd.addParameter(new Parameter("location", "Location", Date.class));
 
         dsd.addRowFilter(cd, paramMapping);
         return dsd;

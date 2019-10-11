@@ -9,12 +9,14 @@
  */
 package org.openmrs.module.kenyaemr.reporting.builder.hts;
 
+import org.openmrs.Location;
 import org.openmrs.PatientIdentifierType;
 import org.openmrs.PersonAttributeType;
 import org.openmrs.module.kenyacore.report.ReportDescriptor;
 import org.openmrs.module.kenyacore.report.ReportUtils;
 import org.openmrs.module.kenyacore.report.builder.AbstractReportBuilder;
 import org.openmrs.module.kenyacore.report.builder.Builds;
+import org.openmrs.module.kenyaemr.datatype.LocationDatatype;
 import org.openmrs.module.kenyaemr.metadata.CommonMetadata;
 import org.openmrs.module.kenyaemr.metadata.HivMetadata;
 import org.openmrs.module.kenyaemr.reporting.cohort.definition.HTSConfirmationRegisterCohortDefinition;
@@ -46,6 +48,7 @@ import org.openmrs.module.reporting.data.converter.DataConverter;
 import org.openmrs.module.reporting.data.converter.DateConverter;
 import org.openmrs.module.reporting.data.converter.ObjectFormatter;
 import org.openmrs.module.reporting.data.encounter.definition.EncounterDatetimeDataDefinition;
+import org.openmrs.module.reporting.data.encounter.definition.EncounterLocationDataDefinition;
 import org.openmrs.module.reporting.data.patient.definition.ConvertedPatientDataDefinition;
 import org.openmrs.module.reporting.data.patient.definition.PatientIdDataDefinition;
 import org.openmrs.module.reporting.data.patient.definition.PatientIdentifierDataDefinition;
@@ -78,14 +81,15 @@ public class HTSRegisterReportBuilder extends AbstractReportBuilder {
         return Arrays.asList(
                 new Parameter("startDate", "Start Date", Date.class),
                 new Parameter("endDate", "End Date", Date.class),
-                new Parameter("dateBasedReporting", "", String.class)
+                new Parameter("location", "Location",Location.class)
+                //new Parameter("locationDateBasedReporting", "", String.class)
         );
     }
 
     @Override
     protected List<Mapped<DataSetDefinition>> buildDataSets(ReportDescriptor reportDescriptor, ReportDefinition reportDefinition) {
         return Arrays.asList(
-                ReportUtils.map(datasetColumns(), "startDate=${startDate},endDate=${endDate}")
+                ReportUtils.map(datasetColumns(), "startDate=${startDate},endDate=${endDate},location=${location}")
         );
     }
 
@@ -96,8 +100,9 @@ public class HTSRegisterReportBuilder extends AbstractReportBuilder {
         dsd.addSortCriteria("Visit Date", SortCriteria.SortDirection.ASC);
         dsd.addParameter(new Parameter("startDate", "Start Date", Date.class));
         dsd.addParameter(new Parameter("endDate", "End Date", Date.class));
+        dsd.addParameter(new Parameter("location", "Location",LocationDatatype.class));
 
-        String paramMapping = "startDate=${startDate},endDate=${endDate}";
+        String paramMapping = "startDate=${startDate},endDate=${endDate},location=${location}";
 
         DataConverter nameFormatter = new ObjectFormatter("{familyName}, {givenName} {middleName}");
         DataDefinition nameDef = new ConvertedPersonDataDefinition("name", new PreferredNameDataDefinition(), nameFormatter);
@@ -134,10 +139,12 @@ public class HTSRegisterReportBuilder extends AbstractReportBuilder {
         dsd.addColumn("everHadHIVSelfTest", new HTSSelfTestDataDefinition(), null);
         dsd.addColumn("provider", new HTSProviderDataDefinition(), null);
         dsd.addColumn("remarks", new HTSRemarksDataDefinition(), null);
+        dsd.addColumn("Encounter Location", new EncounterLocationDataDefinition(), null);
 
         HTSRegisterCohortDefinition cd = new HTSRegisterCohortDefinition();
         cd.addParameter(new Parameter("startDate", "Start Date", Date.class));
         cd.addParameter(new Parameter("endDate", "End Date", Date.class));
+        cd.addParameter(new Parameter("location", "Location", LocationDatatype.class));
 
         dsd.addRowFilter(cd, paramMapping);
         return dsd;

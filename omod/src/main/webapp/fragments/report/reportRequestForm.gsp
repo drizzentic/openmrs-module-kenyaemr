@@ -12,12 +12,16 @@
 
 	def useDateBasedPeriodField = params.containsKey("startDate") && params.containsKey("endDate") && params.containsKey("dateBasedReporting")
 
+	def useDateLocationBasedPeriodField = params.containsKey("startDate") && params.containsKey("endDate") && params.containsKey("location")
+
 	if (useMonthBasedPeriodField || useYearBasedPeriodField) {
 		params.remove("startDate")
 		params.remove("endDate")
 	}
-	
 	if (useYearBasedPeriodField || useDateBasedPeriodField) {
+		useMonthBasedPeriodField = false;
+	}
+	if (useDateLocationBasedPeriodField) {
 		useMonthBasedPeriodField = false;
 	}
 %>
@@ -99,6 +103,12 @@
 		<div class="ke-field-content">
 
 			${ ui.includeFragment("kenyaemr", "field/reportDates") }
+		</div>
+		<% } %>
+		<% if (useDateLocationBasedPeriodField) { %>
+		<div class="ke-field-label"></div>
+		<div class="ke-field-content">
+			${ ui.includeFragment("kenyaemr", "field/reportLocationDates") }
 		</div>
 		<% } %>
 
